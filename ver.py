@@ -192,7 +192,7 @@ def guardar_q_table(filename="q_table.pkl"):
     try:
         with open(filename, "wb") as file:
             pickle.dump(q_table, file)
-        #print("Tabla Q guardada con éxito.")
+        print("Tabla Q guardada con éxito.")
     except Exception as e:
         print(f"Error al guardar la tabla Q: {e}")
 
@@ -221,7 +221,7 @@ def actualizar_q(estado, accion, recompensa, nuevo_estado):
 
 
 def movimiento_ia_qlearning():
-    global movimientos_totales, fichas_blancas, fichas_negras, jugador_turno
+    global movimientos_totales, fichas_blancas, jugador_turno
 
     estado = obtener_estado(tablero)  # Convertir tablero a un estado único
     acciones_validas = []
@@ -256,10 +256,6 @@ def movimiento_ia_qlearning():
         tablero[nueva_fila][nueva_columna] = -2  # Reina negra
         recompensa += 2  # Recompensa por convertirse en reina
 
-    # Actualizar las fichas restantes
-    fichas_blancas = sum(1 for fila in tablero for celda in fila if celda == 1 or celda == -1)
-    fichas_negras = sum(1 for fila in tablero for celda in fila if celda == 2 or celda == -2)
-
     # Actualizar tabla Q
     nuevo_estado = obtener_estado(tablero)
     actualizar_q(estado, accion, recompensa, nuevo_estado)
@@ -268,7 +264,9 @@ def movimiento_ia_qlearning():
     movimientos_totales += 1
     return True
 
-def mostrar_mensaje_fin(mensaje):
+
+
+def mostrar_mensaje_fin(juego_terminado, mensaje):
     texto = fuente.render(mensaje, True, TEXTO_COLOR)
     pantalla.blit(texto, (10, ALTO_VENTANA - 40))  # Mueve el mensaje al área inferior del tablero
     pygame.display.update()
@@ -284,13 +282,13 @@ def verificar_fin_juego():
 
     # Verificar si el juego ha terminado
     if movimientos_totales == 64:
-        mostrar_mensaje_fin("Es un Empate")
+        mostrar_mensaje_fin(True, "Es un Empate")
         recompensa_final = 0  # Recompensa por empate (neutral)
     elif fichas_blancas == 0:
-        mostrar_mensaje_fin("¡Ganan las piezas negras!")
+        mostrar_mensaje_fin(True, "¡Ganan las piezas negras!")
         recompensa_final = 5  # Recompensa por ganar (para la IA, que juega con piezas negras)
     elif fichas_negras == 0:
-        mostrar_mensaje_fin("¡Ganan las piezas blancas!")
+        mostrar_mensaje_fin(True, "¡Ganan las piezas blancas!")
         recompensa_final = -5  # Penalización por perder (para la IA, que juega con piezas negras)
 
     # Actualiza la tabla Q con recompensa final (sin acción futura, ya que el juego terminó)
@@ -298,27 +296,22 @@ def verificar_fin_juego():
     actualizar_q(estado, None, recompensa_final, None)  # No hay acción futura al final del juego
 
 
-# Juego principal
-while True:
-    # Cargar tabla Q al inicio
-    cargar_q_table()
 
-    pantalla.fill(BLANCO)
-    dibujar_tablero()
-    dibujar_fichas()
-    dibujar_movimientos_disponibles()
-    mostrar_turno()
-    verificar_fin_juego()
+def ver_contenido_q_table(filename="q_table.pkl"):
+    try:
+        with open(filename, "rb") as file:
+            q_table = pickle.load(file)
+            print(q_table)  # Imprime el contenido de la tabla Q
+    except FileNotFoundError:
+        print(f"El archivo {filename} no fue encontrado.")
+    except Exception as e:
+        print(f"Error al cargar el archivo: {e}")
 
-    # Llamar a la función de eventos para manejar los clics y otros eventos
-    manejar_eventos()
+# Función main donde puedes usar ver_contenido_q_table
+def main():
+    # Llamar a la función para ver el contenido de la tabla Q
+    ver_contenido_q_table()
 
-    if jugador_turno == 2:  # Turno de la IA
-        if movimiento_ia_qlearning():
-            jugador_turno = 1
-
-    pygame.display.flip()
-    pygame.time.Clock().tick(60)
-
-    # Guardar tabla Q al finalizar
-    guardar_q_table()
+# Ejecutar el main
+if __name__ == "__main__":
+    main()
