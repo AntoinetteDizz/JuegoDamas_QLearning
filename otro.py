@@ -24,9 +24,9 @@ RADIO_PIEZA = 40
 RADIO_REINA = 45
 
 # Parámetros de Q-Learning
-alpha = 0.1  # Tasa de aprendizaje
+alpha = 0.5  # Tasa de aprendizaje
 gamma = 0.9  # Factor de descuento
-epsilon = 0.1  # Factor de exploración
+epsilon = 0.2  # Factor de exploración
 q_table = {}  # Diccionario para almacenar los valores Q
 
 # Inicialización de contadores
