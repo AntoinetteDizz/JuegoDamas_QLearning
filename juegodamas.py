@@ -234,9 +234,13 @@ def obtener_movimientos_validos(fila, columna):
         # Movimiento de captura
         salto_fila, salto_columna = fila + 2 * d_fila, columna + 2 * d_columna
         if (0 <= salto_fila < 4 and 0 <= salto_columna < 4 and
-            tablero[nueva_fila][nueva_columna] not in (0, pieza) and
+            tablero[nueva_fila][nueva_columna] not in (0, pieza) and  # Verifica que no sea una casilla vacía ni la misma pieza
             tablero[salto_fila][salto_columna] == 0):
-            movimientos.append((salto_fila, salto_columna))
+            
+            # Verifica que la pieza intermedia sea del oponente
+            pieza_intermedia = tablero[nueva_fila][nueva_columna]
+            if (pieza in (1, -1) and pieza_intermedia in (2, -2)) or (pieza in (2, -2) and pieza_intermedia in (1, -1)):
+                movimientos.append((salto_fila, salto_columna))
     
     return movimientos
 #-------------------------------------------------------------------------------Movimientos validos
