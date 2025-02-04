@@ -2,8 +2,10 @@ import pygame
 import sys
 import random
 import pickle  # Para guardar y cargar la tabla Q
+import json
+import matplotlib.pyplot as plt
 
-# Constantes del juego
+#-------------------------------------------------------------------------------Constantes del juego
 ANCHO_VENTANA = 400
 ALTO_VENTANA = 400
 TAMANO_CASILLA = 100
@@ -26,15 +28,17 @@ RADIO_REINA = 45
 # Parámetros de Q-Learning
 alpha = 0.1  # Tasa de aprendizaje
 gamma = 0.9  # Factor de descuento
-epsilon = 0.1  # Factor de exploración
+epsilon = 0.2  # Factor de exploración
 q_table = {}  # Diccionario para almacenar los valores Q
 
 # Inicialización de contadores
 movimientos_totales = 0
 fichas_blancas = 2  # Número inicial de fichas blancas
 fichas_negras = 2   # Número inicial de fichas negras
+#-------------------------------------------------------------------------------Constantes del juego
 
-# Inicialización de Pygame
+
+#-------------------------------------------------------------------------------Inicialización de Pygame
 pygame.init()
 pantalla = pygame.display.set_mode((ANCHO_VENTANA, ALTO_VENTANA))
 pygame.display.set_caption("Tablero de Damas 4x4")
@@ -56,7 +60,58 @@ pieza_seleccionada = None
 posicion_original = None
 jugador_turno = 1  # 1 para jugador blanco, 2 para jugador negro
 movimientos_disponibles = []  # Lista de movimientos válidos
+#-------------------------------------------------------------------------------Inicialización de Pygame
 
+#-------------------------------------------------------------------------------Archivo para estadísticas
+STATS_FILE = "stats.json"
+
+def cargar_estadisticas():
+    try:
+        with open(STATS_FILE, "r") as archivo:
+            return json.load(archivo)
+    except FileNotFoundError:
+        print("Archivo no encontrado. Creando estadísticas iniciales...")
+        estadisticas_iniciales = {
+            "victorias_humano": 0,
+            "victorias_ia": 0,
+            "partidas_jugadas": 0
+        }
+        guardar_estadisticas(estadisticas_iniciales)
+        return estadisticas_iniciales
+
+# Función para guardar estadísticas
+def guardar_estadisticas(estadisticas):
+    try:
+        with open(STATS_FILE, "w") as archivo:
+            json.dump(estadisticas, archivo, indent=4)
+        #print("Estadísticas guardadas correctamente.")
+    except Exception as e:
+        print(f"Error al guardar estadísticas: {e}")
+
+estadisticas = cargar_estadisticas()
+
+# Función para graficar resultados
+def graficar_resultados():
+    # Generar datos para la gráfica
+    partidas = list(range(1, estadisticas["partidas_jugadas"] + 1))
+    victorias_ia = [estadisticas["victorias_ia"]] * len(partidas)
+    victorias_humano = [estadisticas["victorias_humano"]] * len(partidas)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(partidas, victorias_ia, label="Victorias IA", marker="o", color="red")
+    plt.plot(partidas, victorias_humano, label="Victorias Humano", marker="o", color="blue")
+
+    plt.xlabel("Número de Partidas Jugadas")
+    plt.ylabel("Número de Victorias")
+    plt.title("Desempeño en Partidas")
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+
+    plt.show()
+#-------------------------------------------------------------------------------Archivo para estadísticas
+
+#-------------------------------------------------------------------------------Tablero
 def dibujar_tablero():
     # Dibuja el tablero y las piezas
     for fila in range(4):
@@ -103,7 +158,9 @@ def dibujar_fichas():
             elif tablero[fila][columna] == 2 or tablero[fila][columna] == -2:  # Ficha negra o reina negra
                 pygame.draw.circle(pantalla, GRIS, (columna * TAMANO_CASILLA + TAMANO_CASILLA // 2, fila * TAMANO_CASILLA + TAMANO_CASILLA // 2), TAMANO_CASILLA // 3 + 3)
                 pygame.draw.circle(pantalla, PNEGRAS, (columna * TAMANO_CASILLA + TAMANO_CASILLA // 2, fila * TAMANO_CASILLA + TAMANO_CASILLA // 2), TAMANO_CASILLA // 3)
+#-------------------------------------------------------------------------------Tablero
 
+#-------------------------------------------------------------------------------Jugador Humano
 def manejar_eventos():
     global pieza_seleccionada, posicion_original, jugador_turno, movimientos_disponibles, movimientos_totales, fichas_negras
 
@@ -150,8 +207,9 @@ def manejar_eventos():
                     pieza_seleccionada = tablero[fila][columna]
                     posicion_original = (fila, columna)
                     movimientos_disponibles = obtener_movimientos_validos(fila, columna)
+#-------------------------------------------------------------------------------Jugador Humano
 
-
+#-------------------------------------------------------------------------------Movimientos validos
 def obtener_movimientos_validos(fila, columna):
     movimientos = []
     pieza = tablero[fila][columna]
@@ -177,6 +235,8 @@ def obtener_movimientos_validos(fila, columna):
             movimientos.append((salto_fila, salto_columna))
     
     return movimientos
+#-------------------------------------------------------------------------------Movimientos validos
+
 
 def obtener_estado(tablero):
     # Convierte el tablero en un estado único representado como tupla de tuplas
@@ -247,16 +307,23 @@ def movimiento_ia_qlearning():
     recompensa = 0
     tablero[nueva_fila][nueva_columna] = tablero[fila][columna]
     tablero[fila][columna] = 0
-    if abs(nueva_fila - fila) == 2:  # Si es captura
-        fila_rival = (fila + nueva_fila) // 2
-        columna_rival = (columna + nueva_columna) // 2
-        tablero[fila_rival][columna_rival] = 0
-        recompensa = 1  # Recompensa por capturar
+    # Verificar si capturó una pieza
+    if abs(nueva_fila - fila) == 2:  # Solo en movimientos de captura (distancia 2)
+        fila_rival = (fila + nueva_fila) // 2  # Calcula la fila de la pieza intermedia
+        columna_rival = (columna + nueva_columna) // 2  # Calcula la columna de la pieza intermedia
+        pieza_rival = tablero[fila_rival][columna_rival]  # Obtiene la pieza en la posición intermedia
+
+        # Verificar que la pieza rival es del oponente antes de eliminarla
+        if pieza_rival in (1, -1):  # Si la pieza rival es una pieza blanca o reina blanca
+            tablero[fila_rival][columna_rival] = 0  # Elimina la pieza rival
+            fichas_blancas -= 1  # Actualiza la cantidad de piezas blancas
+            recompensa = 5  # Recompensa por capturar
+
 
     # Convertir a reina si aplica
     if nueva_fila == 0:
         tablero[nueva_fila][nueva_columna] = -2  # Reina negra
-        recompensa += 2  # Recompensa por convertirse en reina
+        recompensa += 5  # Recompensa por convertirse en reina
 
     # Actualizar las fichas restantes
     fichas_blancas = sum(1 for fila in tablero for celda in fila if celda == 1 or celda == -1)
@@ -290,15 +357,30 @@ def verificar_fin_juego():
         mostrar_mensaje_fin("Es un Empate")
         recompensa_final = 0  # Recompensa por empate (neutral)
     elif fichas_blancas == 0:
+        
+        recompensa_final = 10  # Recompensa por ganar (para la IA, que juega con piezas negras)
+        #-----------------------------------------------------------------------
+        estadisticas["victorias_ia"] += 1
+        estadisticas["partidas_jugadas"] += 1
+        print(f"Victorias IA: {estadisticas['victorias_ia']}, Partidas Jugadas: {estadisticas['partidas_jugadas']}")
+        guardar_estadisticas(estadisticas)
+        # Actualiza la tabla Q con recompensa final (sin acción futura, ya que el juego terminó)
+        estado = obtener_estado(tablero)
+        actualizar_q(estado, None, recompensa_final, None)  # No hay acción futura al final del juego
+        #-------------------------------------------------------------------------------
         mostrar_mensaje_fin("¡Ganan las piezas negras!")
-        recompensa_final = 5  # Recompensa por ganar (para la IA, que juega con piezas negras)
     elif fichas_negras == 0:
+        recompensa_final = -10  # Penalización por perder (para la IA, que juega con piezas negras)
+        #-------------------------------------------------------------------------------
+        estadisticas["victorias_humano"] += 1
+        estadisticas["partidas_jugadas"] += 1
+        print(f"Victorias Humano: {estadisticas['victorias_humano']}, Partidas Jugadas: {estadisticas['partidas_jugadas']}")
+        guardar_estadisticas(estadisticas)
+        # Actualiza la tabla Q con recompensa final (sin acción futura, ya que el juego terminó)
+        estado = obtener_estado(tablero)
+        actualizar_q(estado, None, recompensa_final, None)  # No hay acción futura al final del juego
+        #-------------------------------------------------------------------------------
         mostrar_mensaje_fin("¡Ganan las piezas blancas!")
-        recompensa_final = -5  # Penalización por perder (para la IA, que juega con piezas negras)
-
-    # Actualiza la tabla Q con recompensa final (sin acción futura, ya que el juego terminó)
-    estado = obtener_estado(tablero)
-    actualizar_q(estado, None, recompensa_final, None)  # No hay acción futura al final del juego
 
 
 # Juego principal
@@ -324,3 +406,6 @@ while True:
 
     # Guardar tabla Q al finalizar
     guardar_q_table()
+
+    # Guardar estadisticas
+    guardar_estadisticas(estadisticas)
