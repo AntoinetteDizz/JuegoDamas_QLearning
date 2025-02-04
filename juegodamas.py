@@ -62,6 +62,7 @@ jugador_turno = 1  # 1 para jugador blanco, 2 para jugador negro
 movimientos_disponibles = []  # Lista de movimientos válidos
 #-------------------------------------------------------------------------------Inicialización de Pygame
 
+
 #-------------------------------------------------------------------------------Archivo para estadísticas
 STATS_FILE = "stats.json"
 
@@ -110,6 +111,7 @@ def graficar_resultados():
 
     plt.show()
 #-------------------------------------------------------------------------------Archivo para estadísticas
+
 
 #-------------------------------------------------------------------------------Tablero
 def dibujar_tablero():
@@ -160,6 +162,7 @@ def dibujar_fichas():
                 pygame.draw.circle(pantalla, PNEGRAS, (columna * TAMANO_CASILLA + TAMANO_CASILLA // 2, fila * TAMANO_CASILLA + TAMANO_CASILLA // 2), TAMANO_CASILLA // 3)
 #-------------------------------------------------------------------------------Tablero
 
+
 #-------------------------------------------------------------------------------Jugador Humano
 def manejar_eventos():
     global pieza_seleccionada, posicion_original, jugador_turno, movimientos_disponibles, movimientos_totales, fichas_negras
@@ -209,6 +212,7 @@ def manejar_eventos():
                     movimientos_disponibles = obtener_movimientos_validos(fila, columna)
 #-------------------------------------------------------------------------------Jugador Humano
 
+
 #-------------------------------------------------------------------------------Movimientos validos
 def obtener_movimientos_validos(fila, columna):
     movimientos = []
@@ -238,6 +242,7 @@ def obtener_movimientos_validos(fila, columna):
 #-------------------------------------------------------------------------------Movimientos validos
 
 
+#-------------------------------------------------------------------------------Archivo de Entrenamiento de Agente
 def obtener_estado(tablero):
     # Convierte el tablero en un estado único representado como tupla de tuplas
     return tuple(tuple(fila) for fila in tablero)
@@ -259,8 +264,10 @@ def cargar_q_table(filename="q_table.pkl"):
     except FileNotFoundError:
         q_table = {}
         print("Archivo no encontrado, inicializando tabla Q vacía.")
+#-------------------------------------------------------------------------------Archivo de Entrenamiento de Agente
 
 
+#-------------------------------------------------------------------------------Seleccion de accion del Agente
 def seleccionar_accion(estado, acciones_validas):
     if not acciones_validas:
         return None  # Si no hay acciones válidas, retorna None
@@ -269,14 +276,18 @@ def seleccionar_accion(estado, acciones_validas):
     if estado in q_table and q_table[estado]:
         return max(q_table[estado], key=q_table[estado].get, default=random.choice(acciones_validas))  # Explotación
     return random.choice(acciones_validas)  # Si no hay Q para el estado, explora
+#-------------------------------------------------------------------------------Seleccion de accion del Agente
 
 
+#-------------------------------------------------------------------------------Actualizar Q
 def actualizar_q(estado, accion, recompensa, nuevo_estado):
     max_q_nuevo_estado = max(q_table.get(nuevo_estado, {}).values(), default=0)
     q_actual = q_table.setdefault(estado, {}).get(accion, 0)
     q_table[estado][accion] = q_actual + alpha * (recompensa + gamma * max_q_nuevo_estado - q_actual)
+#-------------------------------------------------------------------------------Actualizar Q
 
 
+#-------------------------------------------------------------------------------Jugador Agente
 def movimiento_ia_qlearning():
     global movimientos_totales, fichas_blancas, fichas_negras, jugador_turno
 
@@ -336,8 +347,10 @@ def movimiento_ia_qlearning():
     jugador_turno = 1  # Cambiar turno al jugador
     movimientos_totales += 1
     return True
+#-------------------------------------------------------------------------------Jugador Agente
 
 
+#-------------------------------------------------------------------------------Fin de Juego
 def mostrar_mensaje_fin(mensaje):
     texto = fuente.render(mensaje, True, TEXTO_COLOR)
     pantalla.blit(texto, (10, ALTO_VENTANA - 40))  # Mueve el mensaje al área inferior del tablero
@@ -381,9 +394,10 @@ def verificar_fin_juego():
         actualizar_q(estado, None, recompensa_final, None)  # No hay acción futura al final del juego
         #-------------------------------------------------------------------------------
         mostrar_mensaje_fin("¡Ganan las piezas blancas!")
+#-------------------------------------------------------------------------------Fin de Juego
 
 
-# Juego principal
+#-------------------------------------------------------------------------------Juego Principal
 while True:
     # Cargar tabla Q al inicio
     cargar_q_table()
@@ -409,3 +423,4 @@ while True:
 
     # Guardar estadisticas
     guardar_estadisticas(estadisticas)
+#-------------------------------------------------------------------------------Juego Principal
